@@ -16,6 +16,8 @@ func initRouter(c *internal.Container) *gin.Engine {
 	apiV1.GET("/users", c.UserController.GetAllUsers)
 	apiV1.GET("/users/:id", c.UserController.GetUserByID)
 
+	apiV1.GET("/tweets/:id", c.TweetController.GetTweetByID)
+
 	return router
 
 }

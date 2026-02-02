@@ -9,7 +9,8 @@ import (
 )
 
 type Container struct {
-	UserController controller.UserController
+	UserController  controller.UserController
+	TweetController controller.TweetController
 }
 
 func NewContainer() (*Container, error) {
@@ -23,8 +24,13 @@ func NewContainer() (*Container, error) {
 	userUsecase := usecase.NewUser(userRepository)
 	userController := controller.NewUser(userUsecase)
 
+	tweetRepository := repository.NewTweet(db)
+	tweetUsecase := usecase.NewTweet(tweetRepository, userRepository)
+	tweetController := controller.NewTweet(tweetUsecase)
+
 	return &Container{
-		UserController: userController,
+		UserController:  userController,
+		TweetController: tweetController,
 	}, nil
 
 }
