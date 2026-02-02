@@ -8,7 +8,7 @@ import (
 
 type UserRepository interface {
 	SelectAll(ctx context.Context) ([]domain.User, error)
-	SelectByID(ctx context.Context, id int) (domain.User, error)
+	SelectByID(ctx context.Context, id int64) (domain.User, error)
 	SelectByEmail(ctx context.Context, email string) (domain.User, error)
 	SelectByUsername(ctx context.Context, username string) (domain.User, error)
 	Insert(ctx context.Context, user domain.User) (domain.User, error)
@@ -44,7 +44,7 @@ func (u User) SelectAll(ctx context.Context) ([]domain.User, error) {
 	return users, nil
 }
 
-func (u User) SelectByID(ctx context.Context, id int) (domain.User, error) {
+func (u User) SelectByID(ctx context.Context, id int64) (domain.User, error) {
 	row := u.db.QueryRowContext(ctx, "SELECT id, username, email, password, created_at, updated_at FROM users WHERE id = $1", id)
 	var user domain.User
 	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt)

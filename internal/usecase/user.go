@@ -9,7 +9,7 @@ import (
 
 type UserUsecase interface {
 	GetAllUsers(ctx context.Context) ([]domain.User, error)
-	GetUserByID(ctx context.Context, id int) (domain.User, error)
+	GetUserByID(ctx context.Context, id int64) (domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	GetUserByUsername(ctx context.Context, username string) (domain.User, error)
 	CreateUser(ctx context.Context, user domain.User) (domain.User, error)
@@ -30,7 +30,7 @@ func (u User) GetAllUsers(ctx context.Context) ([]domain.User, error) {
 	return u.userRepository.SelectAll(ctx)
 }
 
-func (u User) GetUserByID(ctx context.Context, id int) (domain.User, error) {
+func (u User) GetUserByID(ctx context.Context, id int64) (domain.User, error) {
 	return u.userRepository.SelectByID(ctx, id)
 }
 
