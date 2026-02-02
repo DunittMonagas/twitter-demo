@@ -53,36 +53,49 @@ func (u User) GetUserByUsername(ctx context.Context, username string) (domain.Us
 }
 
 func (u User) CreateUser(ctx context.Context, user domain.User) (domain.User, error) {
-	return u.userRepository.Insert(ctx, user)
+
+	// Validate user
+	err := u.validateUser(ctx, user)
+	if err != nil {
+		fmt.Println("CreateUser Error")
+		fmt.Println(err)
+		return domain.User{}, err
+	}
+
+	newUser, err := u.userRepository.Insert(ctx, user)
+	if err != nil {
+		fmt.Println("CreateUser Error")
+		fmt.Println(err)
+		return domain.User{}, err
+	}
+
+	fmt.Println("CreateUser")
+	fmt.Println(newUser)
+
+	return newUser, nil
 }
 
 func (u User) UpdateUser(ctx context.Context, id int64, user domain.User) (domain.User, error) {
 
 	// Check if email already exists
-	existingUserByEmail, err := u.userRepository.SelectByEmail(ctx, user.Email)
+	err := u.validateUser(ctx, user)
 	if err != nil {
+		fmt.Println("UpdateUser Error")
+		fmt.Println(err)
 		return domain.User{}, err
-	}
-	if existingUserByEmail.ID != 0 {
-		return domain.User{}, fmt.Errorf("email already exists")
-	}
-
-	// Check if username already exists
-	existingUserByUsername, err := u.userRepository.SelectByUsername(ctx, user.Username)
-	if err != nil {
-		return domain.User{}, err
-	}
-	if existingUserByUsername.ID != 0 {
-		return domain.User{}, fmt.Errorf("username already exists")
 	}
 
 	// Check if user exists
 	existingUser, err := u.userRepository.SelectByID(ctx, id)
 	if err != nil {
+		fmt.Println("UpdateUser Error")
+		fmt.Println(err)
 		return domain.User{}, err
 	}
 
 	if existingUser.ID == 0 {
+		fmt.Println("UpdateUser Error")
+		fmt.Println(err)
 		return domain.User{}, fmt.Errorf("user not found")
 	}
 
@@ -92,8 +105,37 @@ func (u User) UpdateUser(ctx context.Context, id int64, user domain.User) (domai
 
 	updatedUser, err := u.userRepository.UpdateByID(ctx, id, existingUser)
 	if err != nil {
+		fmt.Println("UpdateUser Error")
+		fmt.Println(err)
 		return domain.User{}, err
 	}
 
 	return updatedUser, nil
+}
+
+func (u User) validateUser(ctx context.Context, user domain.User) error {
+
+	// Check if email already exists
+	existingUserByEmail, err := u.userRepository.SelectByEmail(ctx, user.Email)
+	if err != nil {
+		fmt.Println("validateUser Error SelectByEmail")
+		fmt.Println(err)
+		return err
+	}
+	if existingUserByEmail.ID != 0 {
+		return fmt.Errorf("email already exists")
+	}
+
+	// Check if username already exists
+	existingUserByUsername, err := u.userRepository.SelectByUsername(ctx, user.Username)
+	if err != nil {
+		fmt.Println("validateUser Error SelectByUsername")
+		fmt.Println(err)
+		return err
+	}
+	if existingUserByUsername.ID != 0 {
+		return fmt.Errorf("username already exists")
+	}
+
+	return nil
 }

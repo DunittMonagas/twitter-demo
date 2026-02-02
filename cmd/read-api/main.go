@@ -28,7 +28,7 @@ func main() {
 	}
 
 	router := initRouter(container)
-	err = router.Run()
+	err = router.Run(":8080")
 	if err != nil {
 		log.Fatalf("Failed to run server: %v", err)
 	}

@@ -15,6 +15,21 @@ services:
         postgres:
           condition: service_healthy
 
+  write-api:
+    build: .
+    command: /app/write-api
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:15
     ports:
