@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"twitter-demo/internal/config"
+
+	_ "github.com/lib/pq"
 )
 
 type Postgres struct {

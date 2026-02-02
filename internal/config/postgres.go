@@ -21,17 +21,17 @@ type PostgresConfig struct {
 
 func NewPostgresConfig() PostgresConfig {
 
-	port, err := strconv.Atoi(os.Getenv("POSTGRES_PORT"))
+	port, err := strconv.Atoi(os.Getenv("DB_PORT"))
 	if err != nil {
-		log.Fatalf("Failed to convert POSTGRES_PORT to int: %v", err)
+		log.Fatalf("Failed to convert DB_PORT to int: %v", err)
 	}
 
 	return PostgresConfig{
-		Host:     os.Getenv("POSTGRES_HOST"),
+		Host:     os.Getenv("DB_HOST"),
 		Port:     port,
-		User:     os.Getenv("POSTGRES_USER"),
-		Password: os.Getenv("POSTGRES_PASSWORD"),
-		Database: os.Getenv("POSTGRES_DB"),
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
+		Database: os.Getenv("DB_NAME"),
 		Driver:   PostgresDriver,
 	}
 }

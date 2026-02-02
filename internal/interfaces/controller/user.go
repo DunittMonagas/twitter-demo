@@ -1,21 +1,21 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
-	"twitter-demo/internal/domain"
 	"twitter-demo/internal/usecase"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserController interface {
-	GetAllUsers(ctx gin.Context) ([]domain.User, error)
-	GetUserByID(ctx gin.Context, id int) (domain.User, error)
-	GetUserByEmail(ctx gin.Context, email string) (domain.User, error)
-	GetUserByUsername(ctx gin.Context, username string) (domain.User, error)
-	CreateUser(ctx gin.Context, user domain.User) (domain.User, error)
-	UpdateUser(ctx gin.Context, id int, user domain.User) (domain.User, error)
+	GetAllUsers(ctx *gin.Context)
+	GetUserByID(ctx *gin.Context)
+	// GetUserByEmail(ctx gin.Context, email string) (domain.User, error)
+	// GetUserByUsername(ctx gin.Context, username string) (domain.User, error)
+	// CreateUser(ctx gin.Context, user domain.User) (domain.User, error)
+	// UpdateUser(ctx gin.Context, id int, user domain.User) (domain.User, error)
 }
 
 type User struct {
@@ -31,6 +31,10 @@ func NewUser(userUsecase usecase.UserUsecase) User {
 func (u User) GetAllUsers(ctx *gin.Context) {
 
 	users, err := u.userUsecase.GetAllUsers(ctx)
+
+	fmt.Println(users)
+	fmt.Println(err)
+
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

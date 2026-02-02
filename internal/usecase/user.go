@@ -13,7 +13,7 @@ type UserUsecase interface {
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	GetUserByUsername(ctx context.Context, username string) (domain.User, error)
 	CreateUser(ctx context.Context, user domain.User) (domain.User, error)
-	UpdateUser(ctx context.Context, id int, user domain.User) (domain.User, error)
+	UpdateUser(ctx context.Context, id int64, user domain.User) (domain.User, error)
 }
 
 type User struct {
@@ -27,7 +27,17 @@ func NewUser(userRepository repository.UserRepository) User {
 }
 
 func (u User) GetAllUsers(ctx context.Context) ([]domain.User, error) {
-	return u.userRepository.SelectAll(ctx)
+	users, err := u.userRepository.SelectAll(ctx)
+
+	fmt.Println("GetAllUsers")
+	fmt.Println(users)
+	fmt.Println(err)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (u User) GetUserByID(ctx context.Context, id int64) (domain.User, error) {
@@ -46,7 +56,7 @@ func (u User) CreateUser(ctx context.Context, user domain.User) (domain.User, er
 	return u.userRepository.Insert(ctx, user)
 }
 
-func (u User) UpdateUser(ctx context.Context, id int, user domain.User) (domain.User, error) {
+func (u User) UpdateUser(ctx context.Context, id int64, user domain.User) (domain.User, error) {
 
 	// Check if email already exists
 	existingUserByEmail, err := u.userRepository.SelectByEmail(ctx, user.Email)

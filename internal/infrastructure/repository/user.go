@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"twitter-demo/internal/domain"
 	"twitter-demo/pkg"
 )
@@ -12,7 +13,7 @@ type UserRepository interface {
 	SelectByEmail(ctx context.Context, email string) (domain.User, error)
 	SelectByUsername(ctx context.Context, username string) (domain.User, error)
 	Insert(ctx context.Context, user domain.User) (domain.User, error)
-	UpdateByID(ctx context.Context, id int, user domain.User) (domain.User, error)
+	UpdateByID(ctx context.Context, id int64, user domain.User) (domain.User, error)
 }
 
 type User struct {
@@ -28,9 +29,14 @@ func NewUser(db *pkg.Postgres) User {
 func (u User) SelectAll(ctx context.Context) ([]domain.User, error) {
 	rows, err := u.db.QueryContext(ctx, "SELECT id, username, email, password, created_at, updated_at FROM users")
 	if err != nil {
+		fmt.Println("SelectAll Error")
+		fmt.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
+
+	fmt.Println("SelectAll Success")
+	fmt.Println(rows)
 
 	var users []domain.User
 	for rows.Next() {
@@ -41,6 +47,9 @@ func (u User) SelectAll(ctx context.Context) ([]domain.User, error) {
 		}
 		users = append(users, user)
 	}
+
+	fmt.Println(users)
+
 	return users, nil
 }
 
@@ -84,7 +93,7 @@ func (u User) Insert(ctx context.Context, user domain.User) (domain.User, error)
 	return newUser, nil
 }
 
-func (u User) UpdateByID(ctx context.Context, id int, user domain.User) (domain.User, error) {
+func (u User) UpdateByID(ctx context.Context, id int64, user domain.User) (domain.User, error) {
 	row := u.db.QueryRowContext(ctx, "UPDATE users SET username = $1, email = $2, password = $3 WHERE id = $4 RETURNING id, username, email, password, created_at, updated_at", user.Username, user.Email, user.Password, id)
 	var updatedUser domain.User
 	err := row.Scan(&updatedUser.ID, &updatedUser.Username, &updatedUser.Email, &updatedUser.Password, &updatedUser.CreatedAt, &updatedUser.UpdatedAt)
