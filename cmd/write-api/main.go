@@ -18,6 +18,9 @@ func initRouter(c *internal.Container) *gin.Engine {
 	apiV1.POST("/tweets", c.TweetController.CreateTweet)
 	apiV1.PUT("/tweets/:id", c.TweetController.UpdateTweetByID)
 
+	apiV1.POST("/followers", c.FollowerController.FollowUser)
+	apiV1.DELETE("/followers", c.FollowerController.UnfollowUser)
+
 	return router
 }
 
