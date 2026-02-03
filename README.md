@@ -36,6 +36,39 @@ To meet the requirement of "scaling to millions of users," the following design 
 2.  **Processing:** A **Consumer (Worker)** reads the event and distributes the tweet ID to the Redis timeline lists of the followers.
 3.  **Read:** The Load Balancer directs the request to the **Read API**. It first queries Redis (O(1) access). If there is a "Cache Miss," it falls back to the Read Replica DB.
 
+## Code Structure
+
+The project follows the guidelines of the [Standard Go Project Layout](https://github.com/golang-standards/project-layout) and applies **Clean Architecture** principles to isolate business logic from infrastructure.
+
+```text
+.
+├── cmd/
+│   ├── read-api/      # Entrypoint for the Read API
+│   ├── write-api/     # Entrypoint for the Write API
+│   └── worker/        # Entrypoint for the asynchronous processor
+├── internal/
+│   ├── domain/        # Pure entities (Enterprise Business Rules)
+│   ├── usecase/       # Business logic (Application Business Rules)
+│   ├── infrastructure/# Repository implementations (DB, Redis, Kafka)
+│   └── interfaces/    # HTTP Controllers and DTOs
+├── pkg/               # Shared libraries (DB Drivers, Configs)
+└── database/          # Migrations and Seeds
+```
+
+## Assumptions and Considerations
+
+For the scope of this challenge, the following assumptions and simplifications have been made:
+
+- **Testing:** Demonstrative unit tests have been included for the main use cases (user, tweet), but 100% coverage is not provided.
+
+- **Fan-Out Scope:** The asynchronous distribution pattern was implemented solely for the tweet.created event as a prototype. In a production system, events like "delete tweet" or "unfollow" should also be emitted to maintain cache consistency.
+
+- **Database Agnosticism**: Although a relational database (PostgreSQL) is used for persistence, the code is decoupled via interfaces, allowing for migration to NoSQL or other engines if data volume requires it.
+
+- **Security**: Security implementations such as password hashing (bcrypt) and authentication (JWT) have been omitted to focus on architecture and scalability patterns. Additionally, sensitive credentials (database passwords, API keys) are written in plain text in the configuration files for demonstration purposes only. In a production environment, these should be managed using secure secret management solutions (e.g., HashiCorp Vault, AWS Secrets Manager, Kubernetes Secrets).
+
+- **Content**: The design assumes purely text-based tweets. Multimedia handling would require the integration of Object Storage (S3) and a CDN, components not represented in this diagram.
+
 ## Tech Stack
 
 * **Language:** Go (Golang) 1.25
@@ -251,39 +284,6 @@ sleep 2
 # 5. Get Alice's timeline (should contain Bob's tweet)
 curl http://localhost:8080/timeline/1
 ```
-
-## Code Structure
-
-The project follows the guidelines of the [Standard Go Project Layout](https://github.com/golang-standards/project-layout) and applies **Clean Architecture** principles to isolate business logic from infrastructure.
-
-```text
-.
-├── cmd/
-│   ├── read-api/      # Entrypoint for the Read API
-│   ├── write-api/     # Entrypoint for the Write API
-│   └── worker/        # Entrypoint for the asynchronous processor
-├── internal/
-│   ├── domain/        # Pure entities (Enterprise Business Rules)
-│   ├── usecase/       # Business logic (Application Business Rules)
-│   ├── infrastructure/# Repository implementations (DB, Redis, Kafka)
-│   └── interfaces/    # HTTP Controllers and DTOs
-├── pkg/               # Shared libraries (DB Drivers, Configs)
-└── database/          # Migrations and Seeds
-```
-
-## Assumptions and Considerations
-
-For the scope of this challenge, the following assumptions and simplifications have been made:
-
-- **Testing:** Demonstrative unit tests have been included for the main use cases (user, tweet), but 100% coverage is not provided.
-
-- **Fan-Out Scope:** The asynchronous distribution pattern was implemented solely for the tweet.created event as a prototype. In a production system, events like "delete tweet" or "unfollow" should also be emitted to maintain cache consistency.
-
-- **Database Agnosticism**: Although a relational database (PostgreSQL) is used for persistence, the code is decoupled via interfaces, allowing for migration to NoSQL or other engines if data volume requires it.
-
-- **Security**: Security implementations such as password hashing (bcrypt) and authentication (JWT) have been omitted to focus on architecture and scalability patterns. Additionally, sensitive credentials (database passwords, API keys) are written in plain text in the configuration files for demonstration purposes only. In a production environment, these should be managed using secure secret management solutions (e.g., HashiCorp Vault, AWS Secrets Manager, Kubernetes Secrets).
-
-- **Content**: The design assumes purely text-based tweets. Multimedia handling would require the integration of Object Storage (S3) and a CDN, components not represented in this diagram.
 
 ## Testing
 
