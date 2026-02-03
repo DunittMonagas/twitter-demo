@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"twitter-demo/internal/interfaces/dto"
@@ -85,8 +84,6 @@ func (t Tweet) UpdateTweetByID(ctx *gin.Context) {
 	tweet := dto.ToUpdateTweetDomain(updateTweetRequest)
 	updatedTweet, err := t.tweetUsecase.UpdateTweetByID(ctx, id, tweet)
 	if err != nil {
-		fmt.Println("UpdateTweetByID Error")
-		fmt.Println(err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

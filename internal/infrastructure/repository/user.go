@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"twitter-demo/internal/domain"
 	"twitter-demo/pkg"
 )
@@ -31,14 +30,9 @@ func (u User) SelectAll(ctx context.Context) ([]domain.User, error) {
 
 	rows, err := u.db.QueryContext(ctx, "SELECT id, username, email, password, created_at, updated_at FROM users")
 	if err != nil {
-		fmt.Println("SelectAll Error")
-		fmt.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
-
-	fmt.Println("SelectAll Success")
-	fmt.Println(rows)
 
 	var users []domain.User
 	for rows.Next() {
@@ -49,8 +43,6 @@ func (u User) SelectAll(ctx context.Context) ([]domain.User, error) {
 		}
 		users = append(users, user)
 	}
-
-	fmt.Println(users)
 
 	return users, nil
 }
@@ -117,8 +109,6 @@ func (u User) Insert(ctx context.Context, user domain.User) (domain.User, error)
 
 	err := row.Scan(&newUser.ID, &newUser.Username, &newUser.Email, &newUser.Password, &newUser.CreatedAt, &newUser.UpdatedAt)
 	if err != nil {
-		fmt.Println("Insert Error")
-		fmt.Println(err)
 		return domain.User{}, err
 	}
 
@@ -133,8 +123,6 @@ func (u User) UpdateByID(ctx context.Context, id int64, user domain.User) (domai
 
 	err := row.Scan(&updatedUser.ID, &updatedUser.Username, &updatedUser.Email, &updatedUser.Password, &updatedUser.CreatedAt, &updatedUser.UpdatedAt)
 	if err != nil {
-		fmt.Println("UpdateByID Error")
-		fmt.Println(err)
 		return domain.User{}, err
 	}
 

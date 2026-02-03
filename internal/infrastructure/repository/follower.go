@@ -35,8 +35,6 @@ func (f Follower) Insert(ctx context.Context, follower domain.Follower) (domain.
 
 	err := row.Scan(&newFollower.ID, &newFollower.FollowerID, &newFollower.FollowedID, &newFollower.CreatedAt)
 	if err != nil {
-		fmt.Println("Insert Follower Error")
-		fmt.Println(err)
 		return domain.Follower{}, err
 	}
 
@@ -50,8 +48,6 @@ func (f Follower) Delete(ctx context.Context, followerID, followedID int64) erro
 		followerID, followedID)
 
 	if err != nil {
-		fmt.Println("Delete Follower Error")
-		fmt.Println(err)
 		return err
 	}
 
@@ -93,8 +89,6 @@ func (f Follower) SelectFollowerIDsByFollowedID(ctx context.Context, followedID 
 		followedID)
 
 	if err != nil {
-		fmt.Println("SelectFollowerIDsByFollowedID Error")
-		fmt.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -103,8 +97,6 @@ func (f Follower) SelectFollowerIDsByFollowedID(ctx context.Context, followedID 
 	for rows.Next() {
 		var followerID int64
 		if err := rows.Scan(&followerID); err != nil {
-			fmt.Println("SelectFollowerIDsByFollowedID Scan Error")
-			fmt.Println(err)
 			return nil, err
 		}
 		followerIDs = append(followerIDs, followerID)

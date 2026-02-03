@@ -40,20 +40,13 @@ func (t Tweet) CreateTweet(ctx context.Context, tweet domain.Tweet) (domain.Twee
 	// Validate tweet
 	err := t.validateTweet(ctx, tweet)
 	if err != nil {
-		fmt.Println("CreateTweet Error")
-		fmt.Println(err)
 		return domain.Tweet{}, err
 	}
 
 	newTweet, err := t.tweetRepository.Insert(ctx, tweet)
 	if err != nil {
-		fmt.Println("CreateTweet Error")
-		fmt.Println(err)
 		return domain.Tweet{}, err
 	}
-
-	fmt.Println("CreateTweet")
-	fmt.Println(newTweet)
 
 	// Publish TweetCreatedEvent to Kafka for Fan-Out processing
 	event := dto.NewEvent(
@@ -83,22 +76,16 @@ func (t Tweet) UpdateTweetByID(ctx context.Context, id int64, tweet domain.Tweet
 
 	// Validate tweet content
 	if err := t.validateTweetContent(tweet.Content); err != nil {
-		fmt.Println("UpdateTweetByID Error")
-		fmt.Println(err)
 		return domain.Tweet{}, err
 	}
 
 	// Check if tweet exists
 	existingTweet, err := t.tweetRepository.SelectByID(ctx, id)
 	if err != nil {
-		fmt.Println("UpdateTweetByID Error")
-		fmt.Println(err)
 		return domain.Tweet{}, err
 	}
 
 	if existingTweet.ID == 0 {
-		fmt.Println("UpdateTweetByID Error")
-		fmt.Println(err)
 		return domain.Tweet{}, fmt.Errorf("tweet not found")
 	}
 
@@ -107,8 +94,6 @@ func (t Tweet) UpdateTweetByID(ctx context.Context, id int64, tweet domain.Tweet
 
 	updatedTweet, err := t.tweetRepository.UpdateByID(ctx, id, existingTweet)
 	if err != nil {
-		fmt.Println("UpdateTweetByID Error")
-		fmt.Println(err)
 		return domain.Tweet{}, err
 	}
 
@@ -125,8 +110,6 @@ func (t Tweet) validateTweet(ctx context.Context, tweet domain.Tweet) error {
 	// Check if user exists
 	existingUser, err := t.userRepository.SelectByID(ctx, tweet.UserID)
 	if err != nil {
-		fmt.Println("validateTweetByID Error SelectByID")
-		fmt.Println(err)
 		return err
 	}
 	if existingUser.ID == 0 {

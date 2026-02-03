@@ -24,7 +24,7 @@ func main() {
 	defer func() {
 		log.Println("Closing consumer...")
 		if err := container.Consumer.Close(); err != nil {
-			log.Printf("Error closing consumer: %v", err)
+			log.Fatalf("Error closing consumer: %v", err)
 		}
 	}()
 
@@ -40,14 +40,14 @@ func main() {
 
 	// Start consuming tweets topic
 	topics := []string{config.TopicTweets}
-	log.Printf("📡 Listening for events on topic: %s", config.TopicTweets)
+	log.Printf("Listening for events on topic: %s", config.TopicTweets)
 	log.Println("Press Ctrl+C to stop...")
 	log.Println("========================================")
 
 	// Start consuming messages in a goroutine
 	go func() {
 		if err := container.Consumer.Consume(ctx, topics, container.TimelineController.HandleTweetCreated); err != nil {
-			log.Printf("Consumer error: %v", err)
+			log.Fatalf("Consumer error: %v", err)
 		}
 	}()
 

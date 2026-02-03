@@ -29,10 +29,6 @@ func NewUser(userRepository repository.UserRepository) User {
 func (u User) GetAllUsers(ctx context.Context) ([]domain.User, error) {
 	users, err := u.userRepository.SelectAll(ctx)
 
-	fmt.Println("GetAllUsers")
-	fmt.Println(users)
-	fmt.Println(err)
-
 	if err != nil {
 		return nil, err
 	}
@@ -57,20 +53,13 @@ func (u User) CreateUser(ctx context.Context, user domain.User) (domain.User, er
 	// Validate user
 	err := u.validateUser(ctx, user)
 	if err != nil {
-		fmt.Println("CreateUser Error")
-		fmt.Println(err)
 		return domain.User{}, err
 	}
 
 	newUser, err := u.userRepository.Insert(ctx, user)
 	if err != nil {
-		fmt.Println("CreateUser Error")
-		fmt.Println(err)
 		return domain.User{}, err
 	}
-
-	fmt.Println("CreateUser")
-	fmt.Println(newUser)
 
 	return newUser, nil
 }
@@ -80,22 +69,16 @@ func (u User) UpdateUser(ctx context.Context, id int64, user domain.User) (domai
 	// Check if email already exists
 	err := u.validateUser(ctx, user)
 	if err != nil {
-		fmt.Println("UpdateUser Error")
-		fmt.Println(err)
 		return domain.User{}, err
 	}
 
 	// Check if user exists
 	existingUser, err := u.userRepository.SelectByID(ctx, id)
 	if err != nil {
-		fmt.Println("UpdateUser Error")
-		fmt.Println(err)
 		return domain.User{}, err
 	}
 
 	if existingUser.ID == 0 {
-		fmt.Println("UpdateUser Error")
-		fmt.Println(err)
 		return domain.User{}, fmt.Errorf("user not found")
 	}
 
@@ -105,8 +88,6 @@ func (u User) UpdateUser(ctx context.Context, id int64, user domain.User) (domai
 
 	updatedUser, err := u.userRepository.UpdateByID(ctx, id, existingUser)
 	if err != nil {
-		fmt.Println("UpdateUser Error")
-		fmt.Println(err)
 		return domain.User{}, err
 	}
 
@@ -118,8 +99,6 @@ func (u User) validateUser(ctx context.Context, user domain.User) error {
 	// Check if email already exists
 	existingUserByEmail, err := u.userRepository.SelectByEmail(ctx, user.Email)
 	if err != nil {
-		fmt.Println("validateUser Error SelectByEmail")
-		fmt.Println(err)
 		return err
 	}
 	if existingUserByEmail.ID != 0 {
@@ -129,8 +108,6 @@ func (u User) validateUser(ctx context.Context, user domain.User) error {
 	// Check if username already exists
 	existingUserByUsername, err := u.userRepository.SelectByUsername(ctx, user.Username)
 	if err != nil {
-		fmt.Println("validateUser Error SelectByUsername")
-		fmt.Println(err)
 		return err
 	}
 	if existingUserByUsername.ID != 0 {

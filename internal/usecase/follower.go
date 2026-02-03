@@ -34,8 +34,6 @@ func (f Follower) FollowUser(ctx context.Context, followerID, followedID int64) 
 	// Check if follower user exists
 	followerUser, err := f.userRepository.SelectByID(ctx, followerID)
 	if err != nil {
-		fmt.Println("FollowUser Error - SelectByID follower")
-		fmt.Println(err)
 		return domain.Follower{}, err
 	}
 	if followerUser.ID == 0 {
@@ -45,8 +43,6 @@ func (f Follower) FollowUser(ctx context.Context, followerID, followedID int64) 
 	// Check if followed user exists
 	followedUser, err := f.userRepository.SelectByID(ctx, followedID)
 	if err != nil {
-		fmt.Println("FollowUser Error - SelectByID followed")
-		fmt.Println(err)
 		return domain.Follower{}, err
 	}
 	if followedUser.ID == 0 {
@@ -56,8 +52,6 @@ func (f Follower) FollowUser(ctx context.Context, followerID, followedID int64) 
 	// Check if relationship already exists
 	existingFollower, err := f.followerRepository.SelectByFollowerAndFollowed(ctx, followerID, followedID)
 	if err != nil {
-		fmt.Println("FollowUser Error - SelectByFollowerAndFollowed")
-		fmt.Println(err)
 		return domain.Follower{}, err
 	}
 	if existingFollower.ID != 0 {
@@ -72,13 +66,8 @@ func (f Follower) FollowUser(ctx context.Context, followerID, followedID int64) 
 
 	createdFollower, err := f.followerRepository.Insert(ctx, newFollower)
 	if err != nil {
-		fmt.Println("FollowUser Error - Insert")
-		fmt.Println(err)
 		return domain.Follower{}, err
 	}
-
-	fmt.Println("FollowUser Success")
-	fmt.Println(createdFollower)
 
 	return createdFollower, nil
 }
@@ -93,8 +82,6 @@ func (f Follower) UnfollowUser(ctx context.Context, followerID, followedID int64
 	// Check if follower user exists
 	followerUser, err := f.userRepository.SelectByID(ctx, followerID)
 	if err != nil {
-		fmt.Println("UnfollowUser Error - SelectByID follower")
-		fmt.Println(err)
 		return err
 	}
 	if followerUser.ID == 0 {
@@ -104,8 +91,6 @@ func (f Follower) UnfollowUser(ctx context.Context, followerID, followedID int64
 	// Check if followed user exists
 	followedUser, err := f.userRepository.SelectByID(ctx, followedID)
 	if err != nil {
-		fmt.Println("UnfollowUser Error - SelectByID followed")
-		fmt.Println(err)
 		return err
 	}
 	if followedUser.ID == 0 {
@@ -115,8 +100,6 @@ func (f Follower) UnfollowUser(ctx context.Context, followerID, followedID int64
 	// Check if relationship exists
 	existingFollower, err := f.followerRepository.SelectByFollowerAndFollowed(ctx, followerID, followedID)
 	if err != nil {
-		fmt.Println("UnfollowUser Error - SelectByFollowerAndFollowed")
-		fmt.Println(err)
 		return err
 	}
 	if existingFollower.ID == 0 {
@@ -126,12 +109,8 @@ func (f Follower) UnfollowUser(ctx context.Context, followerID, followedID int64
 	// Delete follower relationship
 	err = f.followerRepository.Delete(ctx, followerID, followedID)
 	if err != nil {
-		fmt.Println("UnfollowUser Error - Delete")
-		fmt.Println(err)
 		return err
 	}
-
-	fmt.Println("UnfollowUser Success")
 
 	return nil
 }

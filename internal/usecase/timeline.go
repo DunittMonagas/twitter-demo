@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 	"twitter-demo/internal/config"
@@ -173,20 +174,20 @@ func (t Timeline) FanOutTweet(ctx context.Context, authorID int64, tweetID int64
 		// Add tweet ID to the beginning of the list (newest first) using LPUSH
 		if err := t.cache.LPush(ctx, cacheKey, tweetIDStr); err != nil {
 			// Log error but continue with other followers
-			fmt.Printf("Failed to add tweet %d to user %d timeline: %v\n", tweetID, followerID, err)
+			log.Printf("Failed to add tweet %d to user %d timeline: %v", tweetID, followerID, err)
 			continue
 		}
 
 		// Trim to keep only the latest MaxCachedTweets
 		if err := t.cache.LTrim(ctx, cacheKey, 0, MaxCachedTweets-1); err != nil {
 			// Log error but continue
-			fmt.Printf("Failed to trim cache for user %d: %v\n", followerID, err)
+			log.Printf("Failed to trim cache for user %d: %v", followerID, err)
 		}
 
 		// Update expiration
 		if err := t.cache.Expire(ctx, cacheKey, CacheExpiration); err != nil {
 			// Log error but continue
-			fmt.Printf("Failed to set expiration for user %d: %v\n", followerID, err)
+			log.Printf("Failed to set expiration for user %d: %v", followerID, err)
 		}
 	}
 

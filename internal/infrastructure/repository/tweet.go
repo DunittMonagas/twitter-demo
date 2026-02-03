@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"twitter-demo/internal/domain"
 	"twitter-demo/pkg"
 )
@@ -52,8 +51,6 @@ func (t Tweet) Insert(ctx context.Context, tweet domain.Tweet) (domain.Tweet, er
 
 	err := row.Scan(&newTweet.ID, &newTweet.UserID, &newTweet.Content, &newTweet.CreatedAt, &newTweet.UpdatedAt)
 	if err != nil {
-		fmt.Println("Insert Error")
-		fmt.Println(err)
 		return domain.Tweet{}, err
 	}
 
@@ -68,8 +65,6 @@ func (t Tweet) UpdateByID(ctx context.Context, id int64, tweet domain.Tweet) (do
 
 	err := row.Scan(&updatedTweet.ID, &updatedTweet.UserID, &updatedTweet.Content, &updatedTweet.CreatedAt, &updatedTweet.UpdatedAt)
 	if err != nil {
-		fmt.Println("UpdateByID Error")
-		fmt.Println(err)
 		return domain.Tweet{}, err
 	}
 
@@ -89,8 +84,6 @@ func (t Tweet) SelectTimelineTweets(ctx context.Context, userID int64, limit, of
 
 	rows, err := t.db.QueryContext(ctx, query, userID, limit, offset)
 	if err != nil {
-		fmt.Println("SelectTimelineTweets Error")
-		fmt.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -100,8 +93,6 @@ func (t Tweet) SelectTimelineTweets(ctx context.Context, userID int64, limit, of
 		var tweet domain.Tweet
 		err := rows.Scan(&tweet.ID, &tweet.UserID, &tweet.Content, &tweet.CreatedAt, &tweet.UpdatedAt)
 		if err != nil {
-			fmt.Println("SelectTimelineTweets Scan Error")
-			fmt.Println(err)
 			return nil, err
 		}
 		tweets = append(tweets, tweet)
@@ -130,8 +121,6 @@ func (t Tweet) SelectTweetsByIDs(ctx context.Context, ids []int64) ([]domain.Twe
 
 	rows, err := t.db.QueryContext(ctx, query, ids)
 	if err != nil {
-		fmt.Println("SelectTweetsByIDs Error")
-		fmt.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -141,8 +130,6 @@ func (t Tweet) SelectTweetsByIDs(ctx context.Context, ids []int64) ([]domain.Twe
 		var tweet domain.Tweet
 		err := rows.Scan(&tweet.ID, &tweet.UserID, &tweet.Content, &tweet.CreatedAt, &tweet.UpdatedAt)
 		if err != nil {
-			fmt.Println("SelectTweetsByIDs Scan Error")
-			fmt.Println(err)
 			return nil, err
 		}
 		tweets = append(tweets, tweet)
