@@ -3,8 +3,12 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log"
+	"twitter-demo/internal/config"
 	"twitter-demo/internal/domain"
 	"twitter-demo/internal/infrastructure/repository"
+	"twitter-demo/internal/interfaces/dto"
+	"twitter-demo/pkg"
 )
 
 type TweetUsecase interface {
@@ -16,12 +20,14 @@ type TweetUsecase interface {
 type Tweet struct {
 	tweetRepository repository.TweetRepository
 	userRepository  repository.UserRepository
+	producer        pkg.Producer
 }
 
-func NewTweet(tweetRepository repository.TweetRepository, userRepository repository.UserRepository) Tweet {
+func NewTweet(tweetRepository repository.TweetRepository, userRepository repository.UserRepository, producer pkg.Producer) Tweet {
 	return Tweet{
 		tweetRepository: tweetRepository,
 		userRepository:  userRepository,
+		producer:        producer,
 	}
 }
 
@@ -48,6 +54,27 @@ func (t Tweet) CreateTweet(ctx context.Context, tweet domain.Tweet) (domain.Twee
 
 	fmt.Println("CreateTweet")
 	fmt.Println(newTweet)
+
+	// Publish TweetCreatedEvent to Kafka for Fan-Out processing
+	event := dto.NewEvent(
+		dto.TweetCreatedEvent,
+		dto.TweetCreatedEventData{
+			TweetID:   newTweet.ID,
+			UserID:    newTweet.UserID,
+			Content:   newTweet.Content,
+			CreatedAt: newTweet.CreatedAt,
+		},
+	)
+
+	// Publish event asynchronously (don't block the response)
+	go func() {
+		eventKey := fmt.Sprintf(config.KeyFormatTweet, newTweet.ID)
+		if err := t.producer.Publish(context.Background(), config.TopicTweets, eventKey, event); err != nil {
+			log.Printf("Failed to publish TweetCreatedEvent: %v", err)
+		} else {
+			log.Printf("Published TweetCreatedEvent for tweet %d", newTweet.ID)
+		}
+	}()
 
 	return newTweet, nil
 }

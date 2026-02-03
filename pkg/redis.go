@@ -18,6 +18,7 @@ type Cache interface {
 
 	// List operations for timeline caching
 	LRange(ctx context.Context, key string, start, stop int64) ([]string, error)
+	LPush(ctx context.Context, key string, values ...interface{}) error
 	RPush(ctx context.Context, key string, values ...interface{}) error
 	LTrim(ctx context.Context, key string, start, stop int64) error
 	LLen(ctx context.Context, key string) (int64, error)
@@ -65,8 +66,14 @@ func (r *redisCache) LRange(ctx context.Context, key string, start, stop int64) 
 	return r.client.LRange(ctx, key, start, stop).Result()
 }
 
-// RPush inserts values at the tail of the list (maintains order as provided).
-// Use this to preserve the exact order of elements.
+// LPush inserts values at the head of the list (prepends).
+// Use this for Fan-Out to add new tweets at the beginning of the timeline.
+func (r *redisCache) LPush(ctx context.Context, key string, values ...interface{}) error {
+	return r.client.LPush(ctx, key, values...).Err()
+}
+
+// RPush inserts values at the tail of the list (appends, maintains order as provided).
+// Use this to build the initial cache from database results.
 func (r *redisCache) RPush(ctx context.Context, key string, values ...interface{}) error {
 	return r.client.RPush(ctx, key, values...).Err()
 }

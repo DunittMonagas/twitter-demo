@@ -22,17 +22,20 @@ const (
 
 type TimelineUsecase interface {
 	GetTimeline(ctx context.Context, userID int64, limit, offset int) ([]domain.Tweet, error)
+	FanOutTweet(ctx context.Context, authorID int64, tweetID int64) error
 }
 
 type Timeline struct {
-	tweetRepository repository.TweetRepository
-	cache           pkg.Cache
+	tweetRepository    repository.TweetRepository
+	followerRepository repository.FollowerRepository
+	cache              pkg.Cache
 }
 
-func NewTimeline(tweetRepository repository.TweetRepository, cache pkg.Cache) Timeline {
+func NewTimeline(tweetRepository repository.TweetRepository, followerRepository repository.FollowerRepository, cache pkg.Cache) Timeline {
 	return Timeline{
-		tweetRepository: tweetRepository,
-		cache:           cache,
+		tweetRepository:    tweetRepository,
+		followerRepository: followerRepository,
+		cache:              cache,
 	}
 }
 
@@ -146,4 +149,46 @@ func (t Timeline) retrieveCacheTweetIDs(ctx context.Context, userID int64, limit
 	}
 
 	return ids, nil
+}
+
+// FanOutTweet distributes a new tweet to all followers' timeline caches.
+// This implements the Fan-Out pattern for real-time timeline updates.
+func (t Timeline) FanOutTweet(ctx context.Context, authorID int64, tweetID int64) error {
+	// Step 1: Get all followers of the tweet author
+	followerIDs, err := t.followerRepository.SelectFollowerIDsByFollowedID(ctx, authorID)
+	if err != nil {
+		return fmt.Errorf("failed to get followers: %w", err)
+	}
+
+	// If author has no followers, nothing to do
+	if len(followerIDs) == 0 {
+		return nil
+	}
+
+	// Step 2: Add tweet to each follower's timeline cache
+	tweetIDStr := fmt.Sprintf("%d", tweetID)
+	for _, followerID := range followerIDs {
+		cacheKey := t.getCacheKey(followerID)
+
+		// Add tweet ID to the beginning of the list (newest first) using LPUSH
+		if err := t.cache.LPush(ctx, cacheKey, tweetIDStr); err != nil {
+			// Log error but continue with other followers
+			fmt.Printf("Failed to add tweet %d to user %d timeline: %v\n", tweetID, followerID, err)
+			continue
+		}
+
+		// Trim to keep only the latest MaxCachedTweets
+		if err := t.cache.LTrim(ctx, cacheKey, 0, MaxCachedTweets-1); err != nil {
+			// Log error but continue
+			fmt.Printf("Failed to trim cache for user %d: %v\n", followerID, err)
+		}
+
+		// Update expiration
+		if err := t.cache.Expire(ctx, cacheKey, CacheExpiration); err != nil {
+			// Log error but continue
+			fmt.Printf("Failed to set expiration for user %d: %v\n", followerID, err)
+		}
+	}
+
+	return nil
 }

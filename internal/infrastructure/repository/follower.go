@@ -12,6 +12,7 @@ type FollowerRepository interface {
 	Insert(ctx context.Context, follower domain.Follower) (domain.Follower, error)
 	Delete(ctx context.Context, followerID, followedID int64) error
 	SelectByFollowerAndFollowed(ctx context.Context, followerID, followedID int64) (domain.Follower, error)
+	SelectFollowerIDsByFollowedID(ctx context.Context, followedID int64) ([]int64, error)
 }
 
 type Follower struct {
@@ -84,4 +85,34 @@ func (f Follower) SelectByFollowerAndFollowed(ctx context.Context, followerID, f
 	}
 
 	return follower, nil
+}
+
+func (f Follower) SelectFollowerIDsByFollowedID(ctx context.Context, followedID int64) ([]int64, error) {
+	rows, err := f.db.QueryContext(ctx,
+		"SELECT follower_id FROM followers WHERE followed_id = $1",
+		followedID)
+
+	if err != nil {
+		fmt.Println("SelectFollowerIDsByFollowedID Error")
+		fmt.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var followerIDs []int64
+	for rows.Next() {
+		var followerID int64
+		if err := rows.Scan(&followerID); err != nil {
+			fmt.Println("SelectFollowerIDsByFollowedID Scan Error")
+			fmt.Println(err)
+			return nil, err
+		}
+		followerIDs = append(followerIDs, followerID)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return followerIDs, nil
 }
