@@ -6,12 +6,12 @@ import (
 )
 
 type CreateTweetRequest struct {
-	UserID  int64  `json:"user_id"`
-	Content string `json:"content"`
+	UserID  int64  `json:"user_id" binding:"required"`
+	Content string `json:"content" binding:"required"`
 }
 
 type UpdateTweetRequest struct {
-	Content string `json:"content"`
+	Content string `json:"content" binding:"required"`
 }
 
 type TweetResponse struct {
@@ -42,5 +42,31 @@ func ToTweetDomain(request CreateTweetRequest) domain.Tweet {
 func ToUpdateTweetDomain(request UpdateTweetRequest) domain.Tweet {
 	return domain.Tweet{
 		Content: request.Content,
+	}
+}
+
+type TimelineRequest struct {
+	Limit  int `form:"limit"`
+	Offset int `form:"offset"`
+}
+
+type TimelineResponse struct {
+	Tweets []TweetResponse `json:"tweets"`
+	Limit  int             `json:"limit"`
+	Offset int             `json:"offset"`
+	Total  int             `json:"total"`
+}
+
+func ToTimelineResponse(tweets []domain.Tweet, limit, offset int) TimelineResponse {
+	tweetResponses := make([]TweetResponse, 0, len(tweets))
+	for _, tweet := range tweets {
+		tweetResponses = append(tweetResponses, ToTweetResponse(tweet))
+	}
+
+	return TimelineResponse{
+		Tweets: tweetResponses,
+		Limit:  limit,
+		Offset: offset,
+		Total:  len(tweetResponses),
 	}
 }

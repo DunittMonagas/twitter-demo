@@ -18,6 +18,8 @@ func initRouter(c *internal.Container) *gin.Engine {
 
 	apiV1.GET("/tweets/:id", c.TweetController.GetTweetByID)
 
+	apiV1.GET("/users/:id/timeline", c.TimelineController.GetTimeline)
+
 	return router
 
 }

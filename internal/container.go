@@ -12,6 +12,7 @@ type Container struct {
 	UserController     controller.UserController
 	TweetController    controller.TweetController
 	FollowerController controller.FollowerController
+	TimelineController controller.TimelineController
 }
 
 func NewContainer() (*Container, error) {
@@ -33,10 +34,14 @@ func NewContainer() (*Container, error) {
 	followerUsecase := usecase.NewFollower(followerRepository, userRepository)
 	followerController := controller.NewFollower(followerUsecase)
 
+	timelineUsecase := usecase.NewTimeline(tweetRepository)
+	timelineController := controller.NewTimeline(timelineUsecase)
+
 	return &Container{
 		UserController:     userController,
 		TweetController:    tweetController,
 		FollowerController: followerController,
+		TimelineController: timelineController,
 	}, nil
 
 }

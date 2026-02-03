@@ -12,6 +12,7 @@ type TweetRepository interface {
 	SelectByID(ctx context.Context, id int64) (domain.Tweet, error)
 	Insert(ctx context.Context, tweet domain.Tweet) (domain.Tweet, error)
 	UpdateByID(ctx context.Context, id int64, tweet domain.Tweet) (domain.Tweet, error)
+	SelectTimelineTweets(ctx context.Context, userID int64, limit, offset int) ([]domain.Tweet, error)
 }
 
 type Tweet struct {
@@ -72,4 +73,42 @@ func (t Tweet) UpdateByID(ctx context.Context, id int64, tweet domain.Tweet) (do
 	}
 
 	return updatedTweet, nil
+}
+
+func (t Tweet) SelectTimelineTweets(ctx context.Context, userID int64, limit, offset int) ([]domain.Tweet, error) {
+
+	query := `
+		SELECT t.id, t.user_id, t.content, t.created_at, t.updated_at
+		FROM tweets t
+		INNER JOIN followers f ON t.user_id = f.followed_id
+		WHERE f.follower_id = $1
+		ORDER BY t.id DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := t.db.QueryContext(ctx, query, userID, limit, offset)
+	if err != nil {
+		fmt.Println("SelectTimelineTweets Error")
+		fmt.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tweets []domain.Tweet
+	for rows.Next() {
+		var tweet domain.Tweet
+		err := rows.Scan(&tweet.ID, &tweet.UserID, &tweet.Content, &tweet.CreatedAt, &tweet.UpdatedAt)
+		if err != nil {
+			fmt.Println("SelectTimelineTweets Scan Error")
+			fmt.Println(err)
+			return nil, err
+		}
+		tweets = append(tweets, tweet)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tweets, nil
 }
