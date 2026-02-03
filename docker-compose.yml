@@ -11,8 +11,13 @@ services:
         - DB_USER=postgres
         - DB_PASSWORD=postgres
         - DB_NAME=postgres
+        - REDIS_ADDRESS=redis:6379
+        - REDIS_PASSWORD=
+        - REDIS_DB=0
       depends_on:
         postgres:
+          condition: service_healthy
+        redis:
           condition: service_healthy
 
   write-api:
@@ -26,8 +31,13 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=postgres
+      - REDIS_ADDRESS=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   postgres:
@@ -50,5 +60,19 @@ services:
       retries: 5
       start_period: 10s
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
 volumes:
   postgres_data:
+  redis_data:
