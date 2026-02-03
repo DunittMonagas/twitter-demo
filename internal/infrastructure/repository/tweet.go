@@ -13,6 +13,7 @@ type TweetRepository interface {
 	Insert(ctx context.Context, tweet domain.Tweet) (domain.Tweet, error)
 	UpdateByID(ctx context.Context, id int64, tweet domain.Tweet) (domain.Tweet, error)
 	SelectTimelineTweets(ctx context.Context, userID int64, limit, offset int) ([]domain.Tweet, error)
+	SelectTweetsByIDs(ctx context.Context, ids []int64) ([]domain.Tweet, error)
 }
 
 type Tweet struct {
@@ -100,6 +101,47 @@ func (t Tweet) SelectTimelineTweets(ctx context.Context, userID int64, limit, of
 		err := rows.Scan(&tweet.ID, &tweet.UserID, &tweet.Content, &tweet.CreatedAt, &tweet.UpdatedAt)
 		if err != nil {
 			fmt.Println("SelectTimelineTweets Scan Error")
+			fmt.Println(err)
+			return nil, err
+		}
+		tweets = append(tweets, tweet)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tweets, nil
+}
+
+func (t Tweet) SelectTweetsByIDs(ctx context.Context, ids []int64) ([]domain.Tweet, error) {
+
+	if len(ids) == 0 {
+		return []domain.Tweet{}, nil
+	}
+
+	// Build the query with ORDER BY to match cache order (newest first)
+	query := `
+		SELECT id, user_id, content, created_at, updated_at
+		FROM tweets
+		WHERE id = ANY($1)
+		ORDER BY id DESC
+	`
+
+	rows, err := t.db.QueryContext(ctx, query, ids)
+	if err != nil {
+		fmt.Println("SelectTweetsByIDs Error")
+		fmt.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tweets []domain.Tweet
+	for rows.Next() {
+		var tweet domain.Tweet
+		err := rows.Scan(&tweet.ID, &tweet.UserID, &tweet.Content, &tweet.CreatedAt, &tweet.UpdatedAt)
+		if err != nil {
+			fmt.Println("SelectTweetsByIDs Scan Error")
 			fmt.Println(err)
 			return nil, err
 		}

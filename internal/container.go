@@ -22,6 +22,9 @@ func NewContainer() (*Container, error) {
 		return nil, err
 	}
 
+	// Initialize Redis cache
+	cache := pkg.NewRedisCache(config.NewRedisConfig())
+
 	userRepository := repository.NewUser(db)
 	userUsecase := usecase.NewUser(userRepository)
 	userController := controller.NewUser(userUsecase)
@@ -34,7 +37,7 @@ func NewContainer() (*Container, error) {
 	followerUsecase := usecase.NewFollower(followerRepository, userRepository)
 	followerController := controller.NewFollower(followerUsecase)
 
-	timelineUsecase := usecase.NewTimeline(tweetRepository)
+	timelineUsecase := usecase.NewTimeline(tweetRepository, cache)
 	timelineController := controller.NewTimeline(timelineUsecase)
 
 	return &Container{
