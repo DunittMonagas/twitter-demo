@@ -119,6 +119,139 @@ docker-compose down
 docker-compose down -v
 ```
 
+## API Examples
+
+Once the services are running, you can interact with the APIs using the following cURL commands:
+
+### User Operations (Write API - Port 8081)
+
+**Create a new user:**
+```bash
+curl -X POST http://localhost:8081/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_doe",
+    "email": "john@example.com",
+    "password": "securepassword123"
+  }'
+```
+
+**Update a user:**
+```bash
+curl -X PUT http://localhost:8081/users/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john_updated",
+    "email": "john.new@example.com",
+    "password": "newsecurepassword"
+  }'
+```
+
+### User Queries (Read API - Port 8080)
+
+**Get all users:**
+```bash
+curl http://localhost:8080/users
+```
+
+**Get user by ID:**
+```bash
+curl http://localhost:8080/users/1
+```
+
+### Tweet Operations (Write API - Port 8081)
+
+**Create a tweet:**
+```bash
+curl -X POST http://localhost:8081/tweets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": 1,
+    "content": "Hello, Twitter! This is my first tweet."
+  }'
+```
+
+**Delete a tweet:**
+```bash
+curl -X DELETE http://localhost:8081/tweets/1
+```
+
+### Timeline Queries (Read API - Port 8080)
+
+**Get user timeline (tweets from followed users):**
+```bash
+# Get timeline for user ID 1
+curl http://localhost:8080/timeline/1
+
+# With pagination
+curl "http://localhost:8080/timeline/1?limit=10&offset=0"
+```
+
+**Get user's own tweets:**
+```bash
+curl http://localhost:8080/tweets/user/1
+```
+
+### Follow Operations (Write API - Port 8081)
+
+**Follow a user:**
+```bash
+curl -X POST http://localhost:8081/followers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "follower_id": 1,
+    "followed_id": 2
+  }'
+```
+
+**Unfollow a user:**
+```bash
+curl -X DELETE http://localhost:8081/followers/1/2
+```
+
+### Follow Queries (Read API - Port 8080)
+
+**Get user's followers:**
+```bash
+curl http://localhost:8080/followers/1
+```
+
+**Get users that a user is following:**
+```bash
+curl http://localhost:8080/following/1
+```
+
+### Example Workflow
+
+Here's a complete example to test the entire flow:
+
+```bash
+# 1. Create two users
+curl -X POST http://localhost:8081/users \
+  -H "Content-Type: application/json" \
+  -d '{"username": "alice", "email": "alice@example.com", "password": "pass123"}'
+
+curl -X POST http://localhost:8081/users \
+  -H "Content-Type: application/json" \
+  -d '{"username": "bob", "email": "bob@example.com", "password": "pass456"}'
+
+# 2. Alice (ID: 1) follows Bob (ID: 2)
+curl -X POST http://localhost:8081/followers \
+  -H "Content-Type: application/json" \
+  -d '{"follower_id": 1, "followed_id": 2}'
+
+# 3. Bob creates a tweet
+curl -X POST http://localhost:8081/tweets \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": 2, "content": "Hello from Bob!"}'
+
+# 4. Wait a moment for the worker to process the event (fan-out)
+sleep 2
+
+# 5. Get Alice's timeline (should contain Bob's tweet)
+curl http://localhost:8080/timeline/1
+```
+
 ## Code Structure
 
 The project follows the guidelines of the [Standard Go Project Layout](https://github.com/golang-standards/project-layout) and applies **Clean Architecture** principles to isolate business logic from infrastructure.
@@ -142,15 +275,15 @@ The project follows the guidelines of the [Standard Go Project Layout](https://g
 
 For the scope of this challenge, the following assumptions and simplifications have been made:
 
-Testing: Demonstrative unit tests have been included for the main use cases (user, tweet), but 100% coverage is not provided.
+- **Testing:** Demonstrative unit tests have been included for the main use cases (user, tweet), but 100% coverage is not provided.
 
-Fan-Out Scope: The asynchronous distribution pattern was implemented solely for the tweet.created event as a prototype. In a production system, events like "delete tweet" or "unfollow" should also be emitted to maintain cache consistency.
+- **Fan-Out Scope:** The asynchronous distribution pattern was implemented solely for the tweet.created event as a prototype. In a production system, events like "delete tweet" or "unfollow" should also be emitted to maintain cache consistency.
 
-Database Agnosticism: Although a relational database (PostgreSQL) is used for persistence, the code is decoupled via interfaces, allowing for migration to NoSQL or other engines if data volume requires it.
+- **Database Agnosticism**: Although a relational database (PostgreSQL) is used for persistence, the code is decoupled via interfaces, allowing for migration to NoSQL or other engines if data volume requires it.
 
-Security: Security implementations such as password hashing (bcrypt) and authentication (JWT) have been omitted to focus on architecture and scalability patterns. Additionally, sensitive credentials (database passwords, API keys) are written in plain text in the configuration files for demonstration purposes only. In a production environment, these should be managed using secure secret management solutions (e.g., HashiCorp Vault, AWS Secrets Manager, Kubernetes Secrets).
+- **Security**: Security implementations such as password hashing (bcrypt) and authentication (JWT) have been omitted to focus on architecture and scalability patterns. Additionally, sensitive credentials (database passwords, API keys) are written in plain text in the configuration files for demonstration purposes only. In a production environment, these should be managed using secure secret management solutions (e.g., HashiCorp Vault, AWS Secrets Manager, Kubernetes Secrets).
 
-Content: The design assumes purely text-based tweets. Multimedia handling would require the integration of Object Storage (S3) and a CDN, components not represented in this diagram.
+- **Content**: The design assumes purely text-based tweets. Multimedia handling would require the integration of Object Storage (S3) and a CDN, components not represented in this diagram.
 
 ## Testing
 
