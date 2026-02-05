@@ -15,26 +15,69 @@ The system is designed under the principle that in a social network like Twitter
 ![Architecture Diagram](./docs/scalable_architecture.png)
 
 ### Scalability Strategy
-To meet the requirement of "scaling to millions of users," the following design decisions were made:
 
-1.  **Separation of Concerns (CQRS - Concept):**
-    * **Write API:** Handles content creation. Its priority is availability and fast data capture.
-    * **Read API:** Handles timeline queries. Its priority is low latency.
-    * **Independent Scaling:** By decoupling these APIs, we can scale the reading infrastructure (which receives 90% of the traffic) without over-provisioning the writing infrastructure.
+The architecture is designed to scale to millions of users through the following key components:
 
-2.  **Read Optimization (Fan-Out on Write):**
-    * Instead of calculating the timeline in real-time (which would require costly database `JOINs` for every request), the system pre-calculates and "pushes" tweets to followers' timelines.
-    * An **Asynchronous Fan-Out** pattern is used via message queues (Kafka/RabbitMQ) and Workers.
+1.  **API Gateway & Horizontal Scaling:** Single entry point that routes traffic to multiple stateless instances of Write API, Read API, and Search Service. Services can scale independently based on demand.
 
-3.  **Hybrid Cache Strategy:**
-    * **Push (Fan-Out):** When a tweet is created, the Worker immediately updates the cache (Redis) of active followers.
-    * **Pull (Cache-Aside):** If the cache fails or is empty (Cold Start), the Read API queries the persistent database, rebuilds the timeline, and stores it in the cache for future queries.
-    * **Consistency:** The system guarantees **Eventual Consistency**. There may be a slight delay between posting a tweet and its appearance on a follower's timeline, an acceptable trade-off to ensure system availability and speed.
+2.  **CQRS Pattern:** Separates Write API (content creation) from Read API (timeline queries), allowing independent scaling of each. The Read API handles most of the traffic without over-provisioning the Write infrastructure.
+
+3.  **Database Sharding:** Data is partitioned across multiple shards using User ID as the sharding key, eliminating single database bottlenecks.
+
+4.  **Graph Database:** Stores social relationships (followers/following) optimized for graph traversal operations, outperforming traditional JOIN queries.
+
+5.  **Full-Text Search Engine:** Elasticsearch/Solr handles search operations (hashtags, users, content) with inverted indexes. Content is indexed asynchronously via Kafka.
+
+6.  **Object Storage & CDN:** Multimedia files are stored in S3-compatible storage and served globally through CDN edge locations for low latency.
+
+7.  **Fan-Out on Write:** Tweets are pre-calculated and pushed to followers' timelines asynchronously via Kafka Workers, avoiding real-time JOIN operations.
+
+8.  **Multi-Layer Cache:** Redis instances cache timelines, user profiles, and metadata. Uses hybrid push (fan-out) and pull (cache-aside) strategies with eventual consistency.
 
 ### Data Flow
-1.  **Write:** The Load Balancer directs the request to the **Write API**. The tweet is persisted in the Master DB, and a `tweet.created` event is published to the Message Broker.
-2.  **Processing:** A **Consumer (Worker)** reads the event and distributes the tweet ID to the Redis timeline lists of the followers.
-3.  **Read:** The Load Balancer directs the request to the **Read API**. It first queries Redis (O(1) access). If there is a "Cache Miss," it falls back to the Read Replica DB.
+
+#### Write Flow (Creating a Tweet):
+1.  **Request:** User sends a request to create a tweet through the Web Application.
+2.  **Routing:** The Load Balancer forwards the request to the **API Gateway**.
+3.  **API Gateway:** Routes the request to an available **Write API** instance.
+4.  **Persistence:** Write API persists the tweet in the appropriate **Database Shard** (based on User ID sharding key).
+5.  **Event Publishing:** Write API publishes a `tweet.created` event to **Kafka**.
+6.  **Media Handling:** If the tweet contains media, files are uploaded to **Object Storage** and URLs are stored in the database.
+7.  **Asynchronous Processing:**
+    * **Worker (Consumer)** reads the `tweet.created` event from Kafka.
+    * Updates the **Cache (Redis)** with the tweet for active followers (Fan-Out).
+    * Updates the **Full-Text Search Engine** index for searchability.
+8.  **CDN Cache:** Media URLs are cached at **CDN** edge locations for fast delivery.
+
+#### Read Flow (Timeline Query):
+1.  **Request:** User requests their timeline through the Web Application.
+2.  **Routing:** Load Balancer → **API Gateway** → **Read API** instance.
+3.  **Timeline Service:** Read API delegates to the **Timeline Service**.
+4.  **Cache Check:** Timeline Service first queries **Cache (Redis)** for the user's pre-computed timeline (O(1) lookup).
+5.  **Cache Hit:** If found, return the cached timeline immediately.
+6.  **Cache Miss (Cold Start):**
+    * Query **Graph Database** to get the list of followed users.
+    * Query relevant **Database Shards** to fetch recent tweets from followed users.
+    * Aggregate and sort tweets by timestamp.
+    * Store the computed timeline in **Cache** for future requests.
+7.  **Response:** Timeline is returned to the user with media URLs pointing to **CDN**.
+
+#### Search Flow:
+1.  **Request:** User performs a search (e.g., hashtags, users, content).
+2.  **Routing:** Load Balancer → **API Gateway** → **Search Service**.
+3.  **Search Query:** Search Service queries the **Full-Text Search Engine** (Elasticsearch/Solr).
+4.  **Results:** Search engine returns ranked results based on relevance.
+5.  **Enrichment:** Search Service may query **Cache** or **Database Shards** for additional metadata.
+6.  **Response:** Enriched search results are returned to the user.
+
+#### Social Graph Flow (Follow/Unfollow):
+1.  **Request:** User follows/unfollows another user.
+2.  **Routing:** Load Balancer → **API Gateway** → **Write API**.
+3.  **Graph Update:** Write API updates the **Graph Database** with the new relationship.
+4.  **Event Publishing:** Publishes a `user.followed` or `user.unfollowed` event to **Kafka**.
+5.  **Asynchronous Processing:**
+    * Worker updates **Cache** to reflect the new relationship.
+    * May trigger timeline pre-computation for the follower.
 
 ## Code Structure
 
@@ -67,15 +110,39 @@ For the scope of this challenge, the following assumptions and simplifications h
 
 - **Security**: Security implementations such as password hashing (bcrypt) and authentication (JWT) have been omitted to focus on architecture and scalability patterns. Additionally, sensitive credentials (database passwords, API keys) are written in plain text in the configuration files for demonstration purposes only. In a production environment, these should be managed using secure secret management solutions (e.g., HashiCorp Vault, AWS Secrets Manager, Kubernetes Secrets).
 
-- **Content**: The design assumes purely text-based tweets. Multimedia handling would require the integration of Object Storage (S3) and a CDN, components not represented in this diagram.
+- **Architecture Completeness:** The updated architecture diagram includes advanced scalability components (Database Sharding, Graph Database, Full-Text Search Engine, Object Storage, CDN, and API Gateway) that represent the production-ready design. The current implementation provides the foundational services, with the architecture designed to accommodate these components as the system scales. These components can be integrated incrementally as user load increases.
+
+- **Multimedia Support:** The architecture now includes **Object Storage (S3)** and **CDN** for handling images, videos, and other media files. This allows the system to efficiently serve multimedia content to millions of users globally with low latency.
+
+- **Search Capabilities:** The **Full-Text Search Engine** component is designed to provide fast and relevant search results for hashtags, user mentions, and tweet content using inverted indexes and relevance algorithms.
+
+- **Social Graph Optimization:** The **Graph Database** is specifically designed to handle social relationships (followers, following, mutual connections) with optimal performance for graph traversal operations, which are common in social networks.
 
 ## Tech Stack
 
+### Core Services
 * **Language:** Go (Golang) 1.25
-* **Relational Database:** PostgreSQL (Simulated Master-Slave configuration).
-* **Cache / Key-Value Store:** Redis (Lists for timelines).
-* **Message Broker:** Kafka (To decouple writing from processing).
-* **Infrastructure:** Docker & Docker Compose.
+* **API Gateway:** Nginx, Kong, or AWS API Gateway (for routing and load distribution)
+* **Load Balancer:** HAProxy, Nginx, or cloud-native LB (AWS ALB/NLB)
+
+### Data Storage
+* **Relational Database:** PostgreSQL with Database Sharding (horizontal partitioning by User ID)
+* **Graph Database:** Neo4j or Amazon Neptune (for social relationships and graph traversal)
+* **Full-Text Search:** Elasticsearch or Apache Solr (for content search and indexing)
+* **Object Storage:** AWS S3, Google Cloud Storage, or MinIO (for multimedia content)
+
+### Caching & Performance
+* **Cache / Key-Value Store:** Redis (multiple instances for timelines, user profiles, and metadata)
+* **CDN:** CloudFront, Cloudflare, or Akamai (for global content delivery)
+
+### Messaging & Processing
+* **Message Broker:** Apache Kafka (for event-driven architecture and asynchronous processing)
+* **Worker/Consumer:** Go-based workers for fan-out operations and async tasks
+
+### Infrastructure & Deployment
+* **Containerization:** Docker & Docker Compose
+* **Orchestration:** Kubernetes (recommended for production horizontal scaling)
+* **Monitoring:** Prometheus, Grafana (optional for observability)
 
 ## Getting Started
 
